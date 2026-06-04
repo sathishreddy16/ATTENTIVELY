@@ -4,7 +4,7 @@ services:
     env: python
     rootDir: backend
     plan: free
-    buildCommand: apt-get update && apt-get install -y ffmpeg && pip install -e .
+    buildCommand: pip install -e . && mkdir -p bin && curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | tar -xJ --strip-components=1 -C bin
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: APP_ENV

@@ -14,7 +14,12 @@ def normalize_audio(input_path: Path) -> Path:
 
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
-        return input_path
+        # Check if we have a locally downloaded ffmpeg binary in the project bin directory (useful for Render free tier)
+        local_ffmpeg = Path(__file__).parents[3] / "bin" / "ffmpeg"
+        if local_ffmpeg.exists():
+            ffmpeg = str(local_ffmpeg)
+        else:
+            return input_path
 
     normalized_path = input_path.with_name(f"{input_path.stem}.normalized.wav")
     command = [
