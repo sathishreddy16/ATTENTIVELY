@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+backend/.venv/
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/.coverage
+backend/data/
+backend/uploads/
+android-app/.gradle/
+android-app/build/
+android-app/app/build/
+local.properties
+*.iml
+.idea/
+.DS_Store
+
+# Secrets and Databases
+.env
+backend/.env
+*.db
+backend/*.db
