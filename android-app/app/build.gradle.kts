@@ -16,7 +16,7 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        buildConfigField("String", "BACKEND_BASE_URL", "\"http://10.0.2.2:8000/\"")
+        buildConfigField("String", "BACKEND_BASE_URL", "\"https://attentively-backend-render.onrender.com/\"")
     }
 
     buildFeatures {
