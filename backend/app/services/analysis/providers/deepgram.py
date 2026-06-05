@@ -25,11 +25,10 @@ class DeepgramProvider(SpeechProvider):
                 f"{self.settings.deepgram_base_url}/listen",
                 params={
                     "model": self.version,
-                    "language": "en-IN",
-                    "smart_format": "true",
+                    "language": "hi",
+                    "smart_format": "false",
                     "utterances": "true",
                     "punctuate": "false",
-                    "keywords": ["hare:10", "krishna:10", "rama:10"],
                 },
                 headers={"Authorization": f"Token {self.settings.deepgram_api_key}"},
                 content=audio_file.read(),
