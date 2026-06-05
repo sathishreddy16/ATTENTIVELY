@@ -22,7 +22,7 @@ from app.schemas import (
     UploadInitRequest,
     UploadInitResponse,
 )
-from app.services.jobs import create_job, enqueue_job
+from app.services.jobs import create_job, enqueue_job, process_job
 from app.services.sessions import build_daily_progress, create_session, get_session
 from app.services.storage import AudioStorage
 from app.services.uploads import complete_upload, init_upload, save_chunk
@@ -99,15 +99,25 @@ def complete_upload_route(
     destination_name = Path(session_record.original_filename or "session.m4a").name
     complete_upload(db, session_record, storage, destination_name)
     job = create_job(db, session_record)
+
+    # Try QStash first, fall back to synchronous processing
     try:
         enqueue_job(settings, job)
         return CompleteUploadResponse(job_id=job.id, session_id=session_record.id, status="queued")
-    except Exception as e:
-        job.status = "enqueue_failed"
-        job.last_error = str(e)
-        session_record.job_status = "enqueue_failed"
-        db.commit()
-        return CompleteUploadResponse(job_id=job.id, session_id=session_record.id, status="enqueue_failed")
+    except Exception as qstash_error:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("QStash enqueue failed: %s. Falling back to sync processing.", qstash_error)
+        try:
+            process_job(db, settings, storage, job)
+            return CompleteUploadResponse(job_id=job.id, session_id=session_record.id, status="completed")
+        except Exception as process_error:
+            logger.error("Sync processing also failed: %s", process_error)
+            job.status = "enqueue_failed"
+            job.last_error = f"QStash: {qstash_error}; Sync: {process_error}"
+            session_record.job_status = "enqueue_failed"
+            db.commit()
+            return CompleteUploadResponse(job_id=job.id, session_id=session_record.id, status="enqueue_failed")
 
 
 @router.get("/sessions/{session_id}/report", response_model=SessionReportResponse)
