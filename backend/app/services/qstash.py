@@ -23,7 +23,7 @@ def publish_job(settings: Settings, job_id: str) -> None:
         return
 
     callback_url = f"{settings.public_base_url}/internal/jobs/{job_id}/process"
-    publish_url = f"{settings.qstash_url}/{quote(callback_url, safe='')}"
+    publish_url = f"{settings.qstash_url}/{callback_url}"
     logger.info("Publishing job %s to QStash. Callback URL: %s", job_id, callback_url)
     logger.info("Full QStash publish URL: %s", publish_url)
     response = httpx.post(

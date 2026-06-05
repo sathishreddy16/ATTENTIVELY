@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, time, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.enums import JobStatus, SessionStatus
@@ -31,9 +31,14 @@ def get_session(db: Session, session_id: str) -> SessionRecord | None:
 
 
 def build_daily_progress(db: Session, target_date: date) -> DailyProgressResponse:
+    # Use range-based comparison to avoid issues with date() function on different DBs
+    start_dt = datetime.combine(target_date, time.min).replace(tzinfo=timezone.utc)
+    end_dt = datetime.combine(target_date, time.max).replace(tzinfo=timezone.utc)
+
     rows = db.execute(
         select(SessionRecord.id, SessionRecord.final_count)
-        .where(func.date(SessionRecord.started_at) == target_date)
+        .where(SessionRecord.started_at >= start_dt)
+        .where(SessionRecord.started_at <= end_dt)
         .where(SessionRecord.status == SessionStatus.completed.value)
     ).all()
 

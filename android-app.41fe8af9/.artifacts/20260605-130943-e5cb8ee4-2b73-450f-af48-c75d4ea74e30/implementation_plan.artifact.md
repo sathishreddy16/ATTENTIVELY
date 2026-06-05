@@ -1,75 +1,54 @@
-# Fix Session Upload and Analysis Reliability (Part 2)
+# Fix Backend Errors and Analysis Processing
 
-The previous changes improved error visibility, showing that the app occasionally suffers from DNS resolution issues ("Unable to resolve host"). Additionally, backend logs show database connection issues and polling for reports that stay in "analysis_pending". This updated plan refines the polling logic and adds a manual retry option.
-
-## User Review Required
-
-> [!IMPORTANT]
-> I will add a "Retry Upload" button to the UI for failed sessions. This allows users to manually trigger a retry when they know their connection is stable, rather than relying solely on WorkManager's exponential backoff which might exhaust attempts during long periods of offline/unstable connectivity.
+The backend is currently experiencing two main issues:
+1.  **SQL Error in `daily-progress`**: A type mismatch in the PostgreSQL query is causing 500 errors.
+2.  **Sessions Stuck in `analysis_pending`**: Analysis jobs are either not being enqueued correctly in QStash or are failing silently during background processing.
 
 ## Proposed Changes
 
-### Work Manager
+### Backend - API & Services
 
-#### [UploadSessionWorker.kt](file:///C:/Users/DELL/Desktop/ATTENTIVELY_CODEX/android-app/app/src/main/java/com/attentively/chantingcoach/work/UploadSessionWorker.kt)
+#### [backend/app/services/sessions.py](file:///C:/Users/DELL/Desktop/ATTENTIVELY_CODEX/backend/app/services/sessions.py)
 
-- Refine retry logic: If the error is a `java.net.UnknownHostException` (DNS failure), use a shorter retry interval or wait for network connectivity.
-- Increase max retries to 12 to handle longer backend processing or unstable networks.
+- Fix the `psycopg.errors.UndefinedFunction` error by ensuring the `target_date` is correctly handled in the SQL query. PostgreSQL's `date()` function might not like the parameter binding style being used by SQLAlchemy with certain drivers.
+- I will change `func.date(SessionRecord.started_at) == target_date` to a more robust range-based comparison or explicit cast.
 
-```kotlin
-        } catch (error: Exception) {
-            Log.e("UploadSessionWorker", "Error processing session $localId", error)
-            if (runAttemptCount > 12) {
-                localRepo.markFailed(localId, error.message ?: "Upload failed after retries")
-                Result.failure()
-            } else {
-                // If it's a network error, maybe wait longer or just retry with backoff
-                Result.retry()
-            }
-        }
+```python
+def build_daily_progress(db: Session, target_date: date) -> DailyProgressResponse:
+    # Use range-based comparison to avoid issues with date() function on different DBs
+    start_dt = datetime.combine(target_date, time.min).replace(tzinfo=timezone.utc)
+    end_dt = datetime.combine(target_date, time.max).replace(tzinfo=timezone.utc)
+
+    rows = db.execute(
+        select(SessionRecord.id, SessionRecord.final_count)
+        .where(SessionRecord.started_at >= start_dt)
+        .where(SessionRecord.started_at <= end_dt)
+        .where(SessionRecord.status == SessionStatus.completed.value)
+    ).all()
+    # ...
 ```
 
----
+#### [backend/app/api/sessions.py](file:///C:/Users/DELL/Desktop/ATTENTIVELY_CODEX/backend/app/api/sessions.py)
 
-### UI Components
+- Improve logging in `complete_upload_route` to track why jobs might be failing to enqueue.
+- Ensure that if QStash is not configured (`qstash_token` is empty), the code correctly falls back to synchronous processing instead of potentially swallowing errors.
 
-#### [Screens.kt](file:///C:/Users/DELL/Desktop/ATTENTIVELY_CODEX/android-app/app/src/main/java/com/attentively/chantingcoach/ui/screens/Screens.kt)
+### Backend - Jobs & Processing
 
-- Add a "Retry" button to the session card when the status is `FAILED`.
+#### [backend/app/services/jobs.py](file:///C:/Users/DELL/Desktop/ATTENTIVELY_CODEX/backend/app/services/jobs.py)
 
-```kotlin
-// In RecordSessionScreen session list item:
-if (session.uploadStatus == "FAILED") {
-    Button(
-        onClick = { viewModel.retryUpload(session.localId) },
-        modifier = Modifier.padding(top = 4.dp)
-    ) {
-        Text("Retry Upload")
-    }
-}
-```
-
-#### [SessionViewModels.kt](file:///C:/Users/DELL/Desktop/ATTENTIVELY_CODEX/android-app/app/src/main/java/com/attentively/chantingcoach/ui/viewmodel/SessionViewModels.kt)
-
-- Implement `retryUpload` in `RecordSessionViewModel`.
-
-```kotlin
-    fun retryUpload(localId: String) {
-        viewModelScope.launch {
-            localSessionsRepository.markStopped(localId) // Reset to PENDING_UPLOAD state conceptually
-            UploadSessionWorker.enqueue(appContext, localId)
-        }
-    }
-```
+- Add more granular logging inside `process_job` to identify which step is stalling (audio normalization, provider transcription, or scoring).
+- Handle potential timeouts more gracefully.
 
 ## Verification Plan
 
 ### Automated Tests
-- Verify compilation: `./gradlew :app:assembleDebug`.
+- I will run the backend locally if possible to verify the SQL fix.
+- Since I don't have a local backend environment set up with PostgreSQL, I will rely on the user to deploy these changes to Render and provide logs.
 
 ### Manual Verification
-- Deploy to device.
-- Simulate a failure (e.g., turn off Wi-Fi) and observe the `FAILED` status with "Unable to resolve host".
-- Verify that the "Retry Upload" button appears.
-- Turn on Wi-Fi and click "Retry Upload".
-- Verify that the session successfully moves to `ANALYSIS_PENDING` and then `COMPLETED`.
+1.  **Deploy to Render**: User pushes changes to the backend repository.
+2.  **Check `daily-progress`**: Trigger the "Refresh Progress" button in the app and verify the 500 error is gone.
+3.  **Perform New Recording**: Record a short session, stop it, and monitor its progress.
+4.  **Monitor Backend Logs**: Check for "Publishing job... to QStash" and "Processing job..." logs.
+5.  **Verify Analysis**: Ensure the session moves from `analysis_pending` to `COMPLETED`.

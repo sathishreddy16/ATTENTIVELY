@@ -102,6 +102,12 @@ def complete_upload_route(
 
     # Try QStash first, fall back to synchronous processing
     try:
+        if not settings.qstash_token:
+            logger.info("QStash not configured. Processing session %s synchronously.", session_id)
+            process_job(db, settings, storage, job)
+            return CompleteUploadResponse(job_id=job.id, session_id=session_record.id, status="completed")
+
+        logger.info("Enqueuing job %s to QStash for session %s", job.id, session_id)
         enqueue_job(settings, job)
         return CompleteUploadResponse(job_id=job.id, session_id=session_record.id, status="queued")
     except Exception as qstash_error:
