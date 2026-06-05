@@ -14,11 +14,11 @@ class ChantingRecorder(private val context: Context) {
         val output = File(context.filesDir, "recordings").apply { mkdirs() }
         val audioFile = File(output, "$localId.m4a")
         val mediaRecorder = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(context) else MediaRecorder()).apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION)
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setAudioEncodingBitRate(128000)
-            setAudioSamplingRate(44100)
+            setAudioEncodingBitRate(256000)
+            setAudioSamplingRate(48000)
             setOutputFile(audioFile.absolutePath)
             prepare()
             start()
