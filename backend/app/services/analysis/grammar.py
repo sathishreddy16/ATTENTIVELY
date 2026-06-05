@@ -1,6 +1,8 @@
-# Define standard variations for each word to improve transcription matching
-HARE_VARIANTS = ("hare", "re", "hurry", "harry", "हरे", "हौरे", "ह")
-KRISHNA_VARIANTS = ("krishna", "krishn", "krsna", "कृष्णा", "कृष्ण", "कृष")
+# Define standard variations for each word to improve transcription matching.
+# We include exact Hindi script matches because the STT models often transcribe
+# Indian words into Hindi script natively when spoken perfectly.
+HARE_VARIANTS = ("hare", "हरे")
+KRISHNA_VARIANTS = ("krishna", "krsna", "कृष्णा", "कृष्ण")
 RAMA_VARIANTS = ("rama", "ram", "रामा", "राम")
 
 CANONICAL_MANTRA_SLOTS = [
