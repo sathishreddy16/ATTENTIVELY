@@ -25,6 +25,7 @@ class DeepgramProvider(SpeechProvider):
                 f"{self.settings.deepgram_base_url}/listen",
                 params={
                     "model": self.version,
+                    "language": "en-IN",
                     "smart_format": "true",
                     "utterances": "true",
                     "punctuate": "false",
