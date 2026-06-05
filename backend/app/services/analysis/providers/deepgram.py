@@ -29,6 +29,7 @@ class DeepgramProvider(SpeechProvider):
                     "smart_format": "true",
                     "utterances": "true",
                     "punctuate": "false",
+                    "keywords": ["hare:10", "krishna:10", "rama:10"],
                 },
                 headers={"Authorization": f"Token {self.settings.deepgram_api_key}"},
                 content=audio_file.read(),
