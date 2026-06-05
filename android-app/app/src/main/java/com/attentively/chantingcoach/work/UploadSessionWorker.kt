@@ -1,6 +1,7 @@
 package com.attentively.chantingcoach.work
 
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -22,7 +23,7 @@ class UploadSessionWorker(
         val remoteRepo = appGraph.sessionUploader
         val sessionApi = appGraph.sessionsRepository
 
-        if (runAttemptCount > 8) {
+        if (runAttemptCount > 12) {
             localRepo.markFailed(localId, "Max retry limit reached")
             return Result.failure()
         }
@@ -37,6 +38,7 @@ class UploadSessionWorker(
         return try {
             val backendSessionId = if (session.backendSessionId == null) {
                 localRepo.markUploading(localId)
+                Log.d("UploadSessionWorker", "Starting upload for local session $localId")
                 val upload = remoteRepo.uploadRecordedSession(
                     audioFile = audioFile,
                     deviceId = session.deviceId,
@@ -45,24 +47,40 @@ class UploadSessionWorker(
                     endedAt = session.endedAt?.let(Instant::parse) ?: Instant.now(),
                 )
                 localRepo.markUploaded(localId, upload.sessionId, upload.jobId)
+                Log.d("UploadSessionWorker", "Upload successful: ${upload.sessionId}")
                 upload.sessionId
             } else {
                 session.backendSessionId
             }
 
             val report = sessionApi.getSessionReport(backendSessionId)
-            if (report.status == "completed") {
-                localRepo.markAnalyzed(localId, report.finalCount, report.malaCount, report.summaryText)
-                if (session.retentionChoice == "delete") {
-                    audioFile.delete()
+            Log.d("UploadSessionWorker", "Session $backendSessionId status: ${report.status}")
+
+            when (report.status) {
+                "completed" -> {
+                    localRepo.markAnalyzed(localId, report.finalCount, report.malaCount, report.summaryText)
+                    if (session.retentionChoice == "delete") {
+                        audioFile.delete()
+                    }
+                    Result.success(workDataOf(KEY_BACKEND_SESSION_ID to backendSessionId))
                 }
-                Result.success(workDataOf(KEY_BACKEND_SESSION_ID to backendSessionId))
+                "failed" -> {
+                    localRepo.markFailed(localId, "Backend analysis failed")
+                    Result.failure()
+                }
+                else -> {
+                    // "pending" or "processing"
+                    Result.retry()
+                }
+            }
+        } catch (error: Exception) {
+            Log.e("UploadSessionWorker", "Error processing session $localId", error)
+            if (runAttemptCount > 12) {
+                localRepo.markFailed(localId, error.message ?: "Upload failed after retries")
+                Result.failure()
             } else {
                 Result.retry()
             }
-        } catch (error: Exception) {
-            localRepo.markFailed(localId, error.message ?: "Upload failed")
-            Result.retry()
         }
     }
 

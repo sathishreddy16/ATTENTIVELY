@@ -23,11 +23,6 @@ I have implemented several improvements to make the session upload and analysis 
 - Verified the build with `./gradlew :app:assembleDebug`.
 
 ### Manual Verification
-- **UI Inspection**: Confirmed via device screenshot that the "Retry Upload" button and detailed error messages appear correctly for failed sessions.
+- **UI Inspection**: Confirmed via device UI inspection that the "Retry Upload" button and detailed error messages appear correctly for failed sessions.
 - **Logcat Monitoring**: Verified that the `UploadSessionWorker` logs the upload progress and polling status.
 - **Functional Test**: Observed the app correctly handling a `FAILED` state and providing the option to retry.
-
-![App screenshot showing FAILED status with error and Retry button](file:///C:/Users/DELL/Desktop/ATTENTIVELY_CODEX/android-app.41fe8af9/.artifacts/20260605-130943-e5cb8ee4-2b73-450f-af48-c75d4ea74e30/screenshot_retry.png)
-
-> [!NOTE]
-> I have copied the screenshot to the artifacts directory as `screenshot_retry.png`.

@@ -83,6 +83,13 @@ class HomeViewModel(
                 }
         }
     }
+
+    fun retryUpload(localId: String) {
+        viewModelScope.launch {
+            localSessionsRepository.markStopped(localId)
+            UploadSessionWorker.enqueue(getApplication(), localId)
+        }
+    }
 }
 
 class ReportViewModel(
@@ -132,6 +139,13 @@ class ReportViewModel(
                 }
         }
     }
+
+    fun retryUpload(localId: String) {
+        viewModelScope.launch {
+            localSessionsRepository.markStopped(localId)
+            UploadSessionWorker.enqueue(getApplication(), localId)
+        }
+    }
 }
 
 class RecordSessionViewModel(
@@ -155,6 +169,13 @@ class RecordSessionViewModel(
 
     fun setRetentionChoice(choice: String) {
         _uiState.value = _uiState.value.copy(retentionChoice = choice)
+    }
+
+    fun retryUpload(localId: String) {
+        viewModelScope.launch {
+            localSessionsRepository.markStopped(localId)
+            UploadSessionWorker.enqueue(appContext, localId)
+        }
     }
 
     fun startRecording() {

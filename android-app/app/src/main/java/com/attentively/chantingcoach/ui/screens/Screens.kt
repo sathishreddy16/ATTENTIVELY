@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -46,7 +46,8 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Today's Chanting")
@@ -70,6 +71,17 @@ fun HomeScreen(
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text("Local session: ${session.localId.take(8)}")
                     Text("Status: ${session.uploadStatus}")
+                    session.lastError?.let {
+                        Text("Error: $it", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (session.uploadStatus == "FAILED") {
+                        Button(
+                            onClick = { viewModel.retryUpload(session.localId) },
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Text("Retry Upload")
+                        }
+                    }
                     Text("Backend: ${session.backendSessionId ?: "Not uploaded yet"}")
                 }
             }
@@ -99,7 +111,8 @@ fun RecordSessionScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Recording Session")
@@ -142,6 +155,17 @@ fun RecordSessionScreen(
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text("Local ID: ${session.localId.take(8)}")
                     Text("Upload status: ${session.uploadStatus}")
+                    session.lastError?.let {
+                        Text("Error: $it", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (session.uploadStatus == "FAILED") {
+                        Button(
+                            onClick = { viewModel.retryUpload(session.localId) },
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Text("Retry Upload")
+                        }
+                    }
                     Text("Summary: ${session.summaryText ?: "Pending analysis"}")
                 }
             }
@@ -166,7 +190,8 @@ fun ReportScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Session Report")
@@ -199,6 +224,17 @@ fun ReportScreen(
                         Text("Local: ${session.localId.take(8)}")
                         Text("Backend: ${session.backendSessionId ?: "Not available yet"}")
                         Text("Status: ${session.uploadStatus}")
+                        session.lastError?.let {
+                            Text("Error: $it", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (session.uploadStatus == "FAILED") {
+                            Button(
+                                onClick = { viewModel.retryUpload(session.localId) },
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
+                                Text("Retry Upload")
+                            }
+                        }
                     }
                 }
             }
@@ -211,25 +247,23 @@ fun ReportScreen(
             "Yellow: ${report?.yellowFlagCount ?: 0}  Red: ${report?.redFlagCount ?: 0}  Gray: ${report?.grayFlagCount ?: 0}"
         )
         report?.summaryText?.let { Text(it) }
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(report?.flaggedMantras ?: emptyList()) { flagged ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            enabled = flagged.playbackAvailable && report.audioPlaybackUrl != null,
-                        ) {
-                            report.audioPlaybackUrl?.let { url ->
-                                player.play(url, flagged.startSec, flagged.endSec)
-                            }
+        (report?.flaggedMantras ?: emptyList()).forEach { flagged ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        enabled = flagged.playbackAvailable && report?.audioPlaybackUrl != null,
+                    ) {
+                        report?.audioPlaybackUrl?.let { url ->
+                            player.play(url, flagged.startSec, flagged.endSec)
                         }
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text("${flagged.flagColor.uppercase()} - ${flagged.issueType}")
-                        Text("Detected: ${flagged.detectedText}")
-                        Text("Time: ${flagged.startSec}s to ${flagged.endSec}s")
-                        Text(if (flagged.playbackAvailable) "Tap to play clip" else "Playback unavailable")
                     }
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text("${flagged.flagColor.uppercase()} - ${flagged.issueType}")
+                    Text("Detected: ${flagged.detectedText}")
+                    Text("Time: ${flagged.startSec}s to ${flagged.endSec}s")
+                    Text(if (flagged.playbackAvailable) "Tap to play clip" else "Playback unavailable")
                 }
             }
         }

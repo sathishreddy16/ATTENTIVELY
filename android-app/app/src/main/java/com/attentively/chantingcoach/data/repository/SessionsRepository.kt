@@ -11,10 +11,10 @@ import com.attentively.chantingcoach.data.network.UploadInitRequestDto
 import java.io.File
 import java.time.Instant
 import java.util.concurrent.TimeUnit
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -108,7 +108,7 @@ class SessionsRepository(
         chunkFile: File,
         mimeType: String,
     ) {
-        val body = chunkFile.asRequestBody(mimeType.toMediaTypeOrNull())
+        val body = RequestBody.create(MediaType.parse(mimeType), chunkFile)
         val part = MultipartBody.Part.createFormData("file", chunkFile.name, body)
         api.uploadChunk(sessionId, chunkIndex, part)
     }
