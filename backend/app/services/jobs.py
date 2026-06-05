@@ -66,7 +66,7 @@ def process_job(db: Session, settings: Settings, storage: AudioStorage, job: Ana
             logger.info("Transcribing with fallback provider (%s) for job %s", fallback.name, job.id)
             result = fallback.transcribe(audio_path)
 
-        logger.info("Scoring result for job %s. Transcribed words: %s", job.id, " ".join(w.text for w in result.words))
+        logger.warning("Scoring result for job %s. Transcribed words: %s", job.id, " ".join(w.text for w in result.words))
         outcome = score_provider_result(result, playback_available=session_record.retention_choice == "keep")
 
         session_record.analysis_provider = outcome.provider_name

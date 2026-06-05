@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+import logging
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -23,6 +24,8 @@ from app.schemas import (
     UploadInitResponse,
 )
 from app.services.jobs import create_job, enqueue_job, process_job
+
+logger = logging.getLogger(__name__)
 from app.services.sessions import build_daily_progress, create_session, get_session
 from app.services.storage import AudioStorage
 from app.services.uploads import complete_upload, init_upload, save_chunk
@@ -111,8 +114,6 @@ def complete_upload_route(
         enqueue_job(settings, job)
         return CompleteUploadResponse(job_id=job.id, session_id=session_record.id, status="queued")
     except Exception as qstash_error:
-        import logging
-        logger = logging.getLogger(__name__)
         logger.warning("QStash enqueue failed: %s. Falling back to sync processing.", qstash_error)
         try:
             process_job(db, settings, storage, job)
