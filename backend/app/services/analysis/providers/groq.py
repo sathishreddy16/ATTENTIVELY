@@ -29,6 +29,7 @@ class GroqProvider(SpeechProvider):
                 "timestamp_granularities[]": ["word", "segment"],
                 "language": "hi",
                 "prompt": "हरे कृष्णा हरे कृष्णा कृष्णा कृष्णा हरे हरे हरे राम हरे राम राम राम हरे हरे",
+                "temperature": 0.0,
             }
             response = httpx.post(
                 f"{self.settings.groq_base_url}/audio/transcriptions",
