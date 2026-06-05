@@ -33,7 +33,7 @@ def get_session(db: Session, session_id: str) -> SessionRecord | None:
 def build_daily_progress(db: Session, target_date: date) -> DailyProgressResponse:
     rows = db.execute(
         select(SessionRecord.id, SessionRecord.final_count)
-        .where(func.date(SessionRecord.started_at) == target_date.isoformat())
+        .where(func.date(SessionRecord.started_at) == target_date)
         .where(SessionRecord.status == SessionStatus.completed.value)
     ).all()
 

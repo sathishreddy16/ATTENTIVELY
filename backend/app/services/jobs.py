@@ -146,7 +146,7 @@ def _compute_daily_total(db: Session, session_record: SessionRecord) -> int:
         return session_record.final_count
     same_day_total = db.execute(
         select(func.coalesce(func.sum(SessionRecord.final_count), 0))
-        .where(func.date(SessionRecord.started_at) == session_record.started_at.date().isoformat())
+        .where(func.date(SessionRecord.started_at) == session_record.started_at.date())
         .where(SessionRecord.id != session_record.id)
         .where(SessionRecord.status == SessionStatus.completed.value)
     ).scalar_one()
