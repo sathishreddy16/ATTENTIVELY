@@ -231,4 +231,37 @@ class RecordSessionViewModel(
             }
         }
     }
+
+    fun uploadFile(uri: android.net.Uri) {
+        viewModelScope.launch {
+            runCatching {
+                val localId = java.util.UUID.randomUUID().toString()
+                val outputDir = java.io.File(appContext.filesDir, "recordings").apply { mkdirs() }
+                val audioFile = java.io.File(outputDir, "$localId.m4a")
+
+                appContext.contentResolver.openInputStream(uri)?.use { input ->
+                    audioFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                } ?: throw IllegalStateException("Could not open input stream for URI")
+
+                localSessionsRepository.createRecordingSessionWithKnownId(
+                    localId = localId,
+                    audioFile = audioFile,
+                    retentionChoice = _uiState.value.retentionChoice,
+                )
+                localSessionsRepository.markStopped(localId)
+                UploadSessionWorker.enqueue(appContext, localId)
+            }.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    error = null,
+                    serviceHint = "File uploaded and queued for analysis."
+                )
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    error = error.message ?: "Unable to upload file."
+                )
+            }
+        }
+    }
 }

@@ -129,6 +129,14 @@ fun RecordSessionScreen(
                 label = { Text("Keep audio") },
             )
         }
+        val filePickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri ->
+            if (uri != null) {
+                viewModel.uploadFile(uri)
+            }
+        }
+
         uiState.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Button(
             onClick = {
@@ -143,11 +151,23 @@ fun RecordSessionScreen(
                 }
             },
             enabled = !uiState.isRecording,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text("Start Recording")
         }
-        Button(onClick = viewModel::stopRecording, enabled = uiState.isRecording) {
+        Button(
+            onClick = viewModel::stopRecording, 
+            enabled = uiState.isRecording,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Stop and Analyze")
+        }
+        Button(
+            onClick = { filePickerLauncher.launch("audio/*") },
+            enabled = !uiState.isRecording,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Upload Audio File")
         }
         Text("Recent local sessions")
         uiState.recentSessions.forEach { session ->
