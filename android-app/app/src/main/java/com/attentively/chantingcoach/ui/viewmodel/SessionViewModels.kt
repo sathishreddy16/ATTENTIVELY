@@ -236,9 +236,20 @@ class RecordSessionViewModel(
         viewModelScope.launch {
             runCatching {
                 val localId = java.util.UUID.randomUUID().toString()
+                var extension = "wav"
+                appContext.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val displayNameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        if (displayNameIndex != -1) {
+                            val displayName = cursor.getString(displayNameIndex)
+                            if (displayName != null && displayName.contains(".")) {
+                                extension = displayName.substringAfterLast('.')
+                            }
+                        }
+                    }
+                }
                 val outputDir = java.io.File(appContext.filesDir, "recordings").apply { mkdirs() }
-                val audioFile = java.io.File(outputDir, "$localId.m4a")
-
+                val audioFile = java.io.File(outputDir, "$localId.$extension")
                 appContext.contentResolver.openInputStream(uri)?.use { input ->
                     audioFile.outputStream().use { output ->
                         input.copyTo(output)
