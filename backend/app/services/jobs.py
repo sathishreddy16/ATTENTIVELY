@@ -59,6 +59,12 @@ def process_job(db: Session, settings: Settings, storage: AudioStorage, job: Ana
             provider_used = primary
             logger.info("Transcribing with primary provider (%s) for job %s", primary.name, job.id)
             result = primary.transcribe(audio_path)
+            
+            if not result.words:
+                logger.warning("Primary provider returned empty transcript for job %s. Trying fallback.", job.id)
+                provider_used = fallback
+                logger.info("Transcribing with fallback provider (%s) for job %s", fallback.name, job.id)
+                result = fallback.transcribe(audio_path)
         except SpeechProviderError as primary_error:
             logger.warning("Primary provider failed for job %s: %s. Trying fallback.", job.id, primary_error)
             job.last_error = str(primary_error)
