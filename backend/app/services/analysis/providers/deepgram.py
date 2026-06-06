@@ -25,9 +25,9 @@ class DeepgramProvider(SpeechProvider):
                 f"{self.settings.deepgram_base_url}/listen",
                 params={
                     "model": self.version,
-                    "language": "hi",
+                    "language": "en-IN",
                     "smart_format": "false",
-                    "utterances": "true",
+                    "utterances": "false",
                     "punctuate": "false",
                 },
                 headers={"Authorization": f"Token {self.settings.deepgram_api_key}"},
