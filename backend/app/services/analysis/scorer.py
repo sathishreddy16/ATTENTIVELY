@@ -143,11 +143,18 @@ def score_provider_result(result: ProviderResult, playback_available: bool) -> A
         present_words = [word for _, word, _ in matched if word is not None]
         if not present_words:
             next_start = -1
-            for i in range(start_cursor + 1, len(words)):
-                token = _normalize_token(words[i].text)
-                if token and _is_variant_match(token, CANONICAL_MANTRA_SLOTS[0]):
+            for i in range(start_cursor + 1, len(words) - 1):
+                t1 = _normalize_token(words[i].text)
+                t2 = _normalize_token(words[i+1].text)
+                if t1 and t2 and _is_variant_match(t1, CANONICAL_MANTRA_SLOTS[0]) and _is_variant_match(t2, CANONICAL_MANTRA_SLOTS[1]):
                     next_start = i
                     break
+            if next_start == -1:
+                for i in range(start_cursor + 1, len(words)):
+                    t1 = _normalize_token(words[i].text)
+                    if t1 and _is_variant_match(t1, CANONICAL_MANTRA_SLOTS[0]):
+                        next_start = i
+                        break
             cursor = next_start if next_start != -1 else len(words)
             continue
 
@@ -187,11 +194,19 @@ def score_provider_result(result: ProviderResult, playback_available: bool) -> A
             
             # Fast-forward cursor to the next possible mantra start to prevent overlapping red flags
             next_start = -1
-            for i in range(start_cursor + 1, len(words)):
-                token = _normalize_token(words[i].text)
-                if token and _is_variant_match(token, CANONICAL_MANTRA_SLOTS[0]):
+            for i in range(cursor, len(words) - 1):
+                t1 = _normalize_token(words[i].text)
+                t2 = _normalize_token(words[i+1].text)
+                if t1 and t2 and _is_variant_match(t1, CANONICAL_MANTRA_SLOTS[0]) and _is_variant_match(t2, CANONICAL_MANTRA_SLOTS[1]):
                     next_start = i
                     break
+            if next_start == -1:
+                # Fallback to single HARE if near the end
+                for i in range(cursor, len(words)):
+                    t1 = _normalize_token(words[i].text)
+                    if t1 and _is_variant_match(t1, CANONICAL_MANTRA_SLOTS[0]):
+                        next_start = i
+                        break
             cursor = next_start if next_start != -1 else len(words)
         else:
             final_count += 1
