@@ -115,6 +115,13 @@ def score_provider_result(result: ProviderResult, playback_available: bool) -> A
                     interruption_seen = True
 
             if candidate is None:
+                if slot_index > 0 and allowed == CANONICAL_MANTRA_SLOTS[slot_index - 1] and matched:
+                    _, prev_candidate, _ = matched[-1]
+                    if prev_candidate is not None:
+                        matched.append((slot_index, prev_candidate, "merged"))
+                        detected_tokens.append("[merged]")
+                        continue
+                
                 missing_slots = True
                 matched.append((slot_index, None, "missing"))
                 continue
@@ -135,7 +142,13 @@ def score_provider_result(result: ProviderResult, playback_available: bool) -> A
 
         present_words = [word for _, word, _ in matched if word is not None]
         if not present_words:
-            cursor = start_cursor + 1
+            next_start = -1
+            for i in range(start_cursor + 1, len(words)):
+                token = _normalize_token(words[i].text)
+                if token and _is_variant_match(token, CANONICAL_MANTRA_SLOTS[0]):
+                    next_start = i
+                    break
+            cursor = next_start if next_start != -1 else len(words)
             continue
 
         start_sec = present_words[0].start
@@ -171,6 +184,15 @@ def score_provider_result(result: ProviderResult, playback_available: bool) -> A
                         playback_available=playback_available,
                     )
                 )
+            
+            # Fast-forward cursor to the next possible mantra start to prevent overlapping red flags
+            next_start = -1
+            for i in range(start_cursor + 1, len(words)):
+                token = _normalize_token(words[i].text)
+                if token and _is_variant_match(token, CANONICAL_MANTRA_SLOTS[0]):
+                    next_start = i
+                    break
+            cursor = next_start if next_start != -1 else len(words)
         else:
             final_count += 1
             if mispronounced:
@@ -187,9 +209,6 @@ def score_provider_result(result: ProviderResult, playback_available: bool) -> A
                         playback_available=playback_available,
                     )
                 )
-
-        if cursor == start_cursor:
-            cursor += 1
 
     pronunciation_score = round((sum(pronunciation_scores) / len(pronunciation_scores)) * 100, 2) if pronunciation_scores else 0.0
     mala_count = final_count // 108

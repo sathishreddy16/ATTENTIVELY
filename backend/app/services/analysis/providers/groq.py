@@ -27,9 +27,8 @@ class GroqProvider(SpeechProvider):
                 "model": self.version,
                 "response_format": "verbose_json",
                 "timestamp_granularities[]": ["word", "segment"],
-                "language": "en",
-                "prompt": "hare krishna hare krishna krishna krishna hare hare hare rama hare rama rama rama hare hare",
-                "temperature": 0.0,
+                "language": "hi",
+                "prompt": "हरे कृष्णा हरे कृष्णा कृष्णा कृष्णा हरे हरे हरे राम हरे राम राम राम हरे हरे",
             }
             response = httpx.post(
                 f"{self.settings.groq_base_url}/audio/transcriptions",
